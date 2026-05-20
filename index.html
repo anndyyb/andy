@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Run Dashboard – Gonzalo Bértola</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --neon-green: #00ff88;
+      --neon-blue: #00cfff;
+      --neon-pink: #ff2d78;
+      --neon-purple: #a855f7;
+      --neon-orange: #ff6a00;
+      --neon-yellow: #ffe600;
+      --bg: #090913;
+      --card: #0f0f1e;
+      --card2: #13132a;
+      --border: rgba(0,255,136,0.15);
+      --text: #e2e8f0;
+      --muted: #7c8db0;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: var(--bg);
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 20% 20%, rgba(0,255,136,0.04) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 80%, rgba(0,207,255,0.04) 0%, transparent 60%),
+        radial-gradient(ellipse at 50% 50%, rgba(168,85,247,0.03) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px 16px;
+      position: relative;
+      
+    }
+
+    /* ── HEADER ── */
+    .header { text-align: center; margin-bottom: 36px; }
+    .header-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(0,255,136,0.1);
+      border: 1px solid var(--neon-green);
+      border-radius: 100px; padding: 6px 18px;
+      font-size: 11px; font-weight: 600; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--neon-green); margin-bottom: 14px;
+      animation: pulse-border 2s ease-in-out infinite;
+    }
+    @keyframes pulse-border {
+      0%,100% { box-shadow: 0 0 0 0 rgba(0,255,136,0.3); }
+      50%      { box-shadow: 0 0 0 8px rgba(0,255,136,0); }
+    }
+    .dot-live {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--neon-green); animation: blink 1.2s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+    .header h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: clamp(28px, 5vw, 52px); font-weight: 900;
+      background: linear-gradient(135deg, #fff 0%, var(--neon-green) 50%, var(--neon-blue) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; letter-spacing: -1px; line-height: 1.1; margin-bottom: 6px;
+    }
+    .header .subtitle { color: var(--muted); font-size: 14px; }
+    .header .subtitle span { color: var(--neon-blue); font-weight: 600; }
+
+    /* ── HERO ── */
+    .hero-grid {
+      display: grid; grid-template-columns: repeat(5, 1fr);
+      gap: 14px; margin-bottom: 28px;
+    }
+    @media(max-width:768px){
+      .hero-grid { grid-template-columns: repeat(2,1fr); }
+      .hero-grid .hero-card:first-child { grid-column: span 2; }
+    }
+    .hero-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 22px 20px; text-align: center;
+      position: relative; overflow: hidden;
+      transition: transform .2s, box-shadow .2s; cursor: default;
+    }
+    .hero-card:hover { transform: translateY(-4px); }
+    .hero-card::before {
+      content:''; position:absolute; top:0; left:0; right:0;
+      height:2px; border-radius:20px 20px 0 0;
+    }
+    .hero-card.green::before  { background:linear-gradient(90deg,transparent,var(--neon-green),transparent); }
+    .hero-card.blue::before   { background:linear-gradient(90deg,transparent,var(--neon-blue),transparent); }
+    .hero-card.pink::before   { background:linear-gradient(90deg,transparent,var(--neon-pink),transparent); }
+    .hero-card.purple::before { background:linear-gradient(90deg,transparent,var(--neon-purple),transparent); }
+    .hero-card.orange::before { background:linear-gradient(90deg,transparent,var(--neon-orange),transparent); }
+    .hero-card:hover.green  { box-shadow:0 8px 40px rgba(0,255,136,0.2); border-color:rgba(0,255,136,0.4); }
+    .hero-card:hover.blue   { box-shadow:0 8px 40px rgba(0,207,255,0.2); border-color:rgba(0,207,255,0.4); }
+    .hero-card:hover.pink   { box-shadow:0 8px 40px rgba(255,45,120,0.2); border-color:rgba(255,45,120,0.4); }
+    .hero-card:hover.purple { box-shadow:0 8px 40px rgba(168,85,247,0.2); border-color:rgba(168,85,247,0.4); }
+    .hero-card:hover.orange { box-shadow:0 8px 40px rgba(255,106,0,0.2);  border-color:rgba(255,106,0,0.4); }
+    .hero-icon { font-size:26px; margin-bottom:8px; }
+    .hero-value {
+      font-family:'Orbitron',sans-serif;
+      font-size:clamp(22px,3.5vw,36px); font-weight:700; line-height:1; margin-bottom:4px;
+    }
+    .hero-card.green  .hero-value { color:var(--neon-green);  text-shadow:0 0 20px rgba(0,255,136,0.5); }
+    .hero-card.blue   .hero-value { color:var(--neon-blue);   text-shadow:0 0 20px rgba(0,207,255,0.5); }
+    .hero-card.pink   .hero-value { color:var(--neon-pink);   text-shadow:0 0 20px rgba(255,45,120,0.5); }
+    .hero-card.purple .hero-value { color:var(--neon-purple); text-shadow:0 0 20px rgba(168,85,247,0.5); }
+    .hero-card.orange .hero-value { color:var(--neon-orange); text-shadow:0 0 20px rgba(255,106,0,0.5); }
+    .hero-label { font-size:10px; font-weight:600; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      font-family:'Orbitron',sans-serif; font-size:13px; font-weight:700;
+      letter-spacing:2px; text-transform:uppercase; color:var(--muted);
+      margin-bottom:14px; display:flex; align-items:center; gap:10px;
+    }
+    .section-title::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,var(--border),transparent); }
+
+    /* ── CHARTS ── */
+    .charts-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; margin-bottom:28px; }
+    @media(max-width:768px){ .charts-grid { grid-template-columns:1fr; } }
+    .chart-card {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:20px; padding:20px; position:relative; overflow:hidden;
+    }
+    .chart-card .chart-title {
+      font-size:11px; font-weight:600; letter-spacing:1.5px;
+      text-transform:uppercase; color:var(--muted); margin-bottom:14px;
+      display:flex; align-items:center; gap:8px;
+    }
+    .chart-card .chart-title .dot { width:8px; height:8px; border-radius:50%; }
+    .chart-wrap { position:relative; height:160px; }
+
+    /* ── LAPS ── */
+    .laps-wrap { margin-bottom:28px; }
+    .laps-table { width:100%; border-collapse:collapse; font-size:13px; }
+    .laps-table th {
+      text-align:left; padding:10px 14px; font-size:10px; font-weight:600;
+      letter-spacing:1.5px; text-transform:uppercase; color:var(--muted);
+      border-bottom:1px solid var(--border);
+    }
+    .laps-table td { padding:14px 14px; border-bottom:1px solid rgba(255,255,255,0.04); font-variant-numeric:tabular-nums; }
+    .laps-table tr:hover td { background:rgba(255,255,255,0.03); }
+    .lap-num { font-family:'Orbitron',sans-serif; font-size:12px; color:var(--neon-blue); }
+    .lap-badge { display:inline-block; padding:3px 10px; border-radius:100px; font-size:11px; font-weight:600; }
+
+    /* ── ZONES ── */
+    .zones-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:28px; }
+    @media(max-width:768px){ .zones-grid { grid-template-columns:1fr; } }
+    .zones-card { background:var(--card); border:1px solid var(--border); border-radius:20px; padding:20px; }
+    .zone-row { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+    .zone-label { font-size:11px; color:var(--muted); min-width:90px; }
+    .zone-bar-wrap { flex:1; background:rgba(255,255,255,0.05); border-radius:100px; height:8px; overflow:hidden; }
+    .zone-bar { height:100%; border-radius:100px; transition:width 1s cubic-bezier(.4,0,.2,1); }
+    .zone-pct { font-family:'Orbitron',sans-serif; font-size:11px; min-width:35px; text-align:right; }
+
+    /* ── METRICS ── */
+    .metrics-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:28px; }
+    @media(max-width:900px){ .metrics-grid { grid-template-columns:repeat(2,1fr); } }
+    .metric-card {
+      background:var(--card2); border:1px solid rgba(255,255,255,0.06);
+      border-radius:16px; padding:16px; display:flex; flex-direction:column; gap:4px;
+    }
+    .metric-card .m-icon { font-size:20px; margin-bottom:6px; }
+    .metric-card .m-value { font-family:'Orbitron',sans-serif; font-size:18px; font-weight:700; color:#fff; }
+    .metric-card .m-label { font-size:10px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--muted); }
+
+    /* ── TRAINING EFFECT ── */
+    .te-card {
+      background:var(--card); border:1px solid var(--border); border-radius:20px;
+      padding:22px; margin-bottom:28px; display:flex; align-items:center;
+      gap:24px; flex-wrap:wrap;
+    }
+    .te-badge {
+      background:linear-gradient(135deg,rgba(0,255,136,0.15),rgba(0,207,255,0.15));
+      border:1px solid rgba(0,255,136,0.3); border-radius:16px;
+      padding:14px 24px; text-align:center; min-width:120px;
+    }
+    .te-badge .te-type { font-family:'Orbitron',sans-serif; font-size:18px; font-weight:700; color:var(--neon-green); text-shadow:0 0 20px rgba(0,255,136,0.4); }
+    .te-badge .te-sub { font-size:10px; color:var(--muted); margin-top:2px; }
+    .te-info { flex:1; }
+    .te-info h3 { font-size:16px; font-weight:700; color:#fff; margin-bottom:4px; }
+    .te-info p  { font-size:13px; color:var(--muted); }
+    .te-scores { display:flex; gap:20px; }
+    .te-score { text-align:center; }
+    .te-score .ts-val { font-family:'Orbitron',sans-serif; font-size:24px; font-weight:700; }
+    .te-score .ts-val.aero   { color:var(--neon-green); }
+    .te-score .ts-val.anaero { color:var(--neon-pink); }
+    .te-score .ts-lbl { font-size:10px; color:var(--muted); text-transform:uppercase; letter-spacing:1px; }
+
+    /* ════════════════════════════════════════
+       ── COACHING SECTION ──
+    ════════════════════════════════════════ */
+
+    /* Mensaje motivacional banner */
+    .motive-banner {
+      position: relative;
+      border-radius: 24px;
+      padding: 32px 36px;
+      margin-bottom: 28px;
+      overflow: hidden;
+      background: linear-gradient(135deg, #0d0d25 0%, #12102a 50%, #0a0d1f 100%);
+      border: 1px solid rgba(168,85,247,0.3);
+    }
+    .motive-banner::before {
+      content:'';
+      position:absolute; inset:0;
+      background: linear-gradient(135deg,
+        rgba(0,255,136,0.07) 0%,
+        rgba(168,85,247,0.07) 50%,
+        rgba(0,207,255,0.07) 100%);
+    }
+    .motive-banner::after {
+      content:'';
+      position:absolute; top:0; left:0; right:0; height:3px;
+      background: linear-gradient(90deg, var(--neon-green), var(--neon-purple), var(--neon-blue));
+      border-radius:24px 24px 0 0;
+      animation: shimmer 3s linear infinite;
+      background-size: 200% 100%;
+    }
+    @keyframes shimmer {
+      0%   { background-position: -200% 0; }
+      100% { background-position:  200% 0; }
+    }
+    .motive-inner { position:relative; z-index:1; display:flex; align-items:center; gap:28px; flex-wrap:wrap; }
+    .motive-emoji { font-size:64px; line-height:1; filter:drop-shadow(0 0 20px rgba(0,255,136,0.4)); }
+    .motive-text { flex:1; min-width:240px; }
+    .motive-text .motive-tag {
+      font-size:10px; font-weight:700; letter-spacing:2.5px; text-transform:uppercase;
+      color:var(--neon-purple); margin-bottom:8px;
+    }
+    .motive-text h2 {
+      font-family:'Orbitron',sans-serif; font-size:clamp(18px,3vw,28px); font-weight:900;
+      background:linear-gradient(90deg,#fff,var(--neon-green));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+      line-height:1.2; margin-bottom:12px;
+    }
+    .motive-text p { font-size:14px; color:#a0aec0; line-height:1.7; max-width:560px; }
+    .motive-text p strong { color:#fff; }
+    .motive-stars { display:flex; gap:4px; margin-top:12px; }
+    .motive-stars span { font-size:18px; animation: star-pulse 1.5s ease-in-out infinite; }
+    .motive-stars span:nth-child(2){ animation-delay:.2s; }
+    .motive-stars span:nth-child(3){ animation-delay:.4s; }
+    .motive-stars span:nth-child(4){ animation-delay:.6s; }
+    .motive-stars span:nth-child(5){ animation-delay:.8s; }
+    @keyframes star-pulse {
+      0%,100%{ transform:scale(1); }
+      50%{ transform:scale(1.3); }
+    }
+
+    /* Score rápido de rendimiento */
+    .perf-score-wrap {
+      display:flex; gap:14px; margin-bottom:28px; flex-wrap:wrap;
+    }
+    .perf-score-card {
+      flex:1; min-width:180px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius:20px; padding:20px 18px;
+      display:flex; align-items:center; gap:14px;
+      transition:transform .2s;
+    }
+    .perf-score-card:hover { transform:translateY(-3px); }
+    .score-ring {
+      position:relative; width:60px; height:60px; flex-shrink:0;
+    }
+    .score-ring svg { transform:rotate(-90deg); }
+    .score-ring-num {
+      position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+      font-family:'Orbitron',sans-serif; font-size:14px; font-weight:700;
+    }
+    .score-info .score-label { font-size:12px; font-weight:700; color:#fff; margin-bottom:4px; }
+    .score-info .score-desc { font-size:11px; color:var(--muted); line-height:1.4; }
+
+    /* Tips grid */
+    .tips-grid {
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap:16px;
+      margin-bottom:28px;
+    }
+    @media(max-width:900px){ .tips-grid { grid-template-columns:repeat(2,1fr); } }
+    @media(max-width:560px){ .tips-grid { grid-template-columns:1fr; } }
+
+    .tip-card {
+      background:var(--card);
+      border-radius:20px;
+      padding:22px;
+      position:relative;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,0.06);
+      transition:transform .2s, box-shadow .2s;
+    }
+    .tip-card:hover { transform:translateY(-4px); }
+    .tip-card::before {
+      content:'';
+      position:absolute; top:0; left:0; right:0; height:3px;
+      border-radius:20px 20px 0 0;
+    }
+    .tip-card.tc-green::before  { background:linear-gradient(90deg,transparent,var(--neon-green),transparent); }
+    .tip-card.tc-blue::before   { background:linear-gradient(90deg,transparent,var(--neon-blue),transparent); }
+    .tip-card.tc-pink::before   { background:linear-gradient(90deg,transparent,var(--neon-pink),transparent); }
+    .tip-card.tc-purple::before { background:linear-gradient(90deg,transparent,var(--neon-purple),transparent); }
+    .tip-card.tc-orange::before { background:linear-gradient(90deg,transparent,var(--neon-orange),transparent); }
+    .tip-card.tc-yellow::before { background:linear-gradient(90deg,transparent,var(--neon-yellow),transparent); }
+
+    .tip-card:hover.tc-green  { box-shadow:0 8px 40px rgba(0,255,136,0.15); border-color:rgba(0,255,136,0.25); }
+    .tip-card:hover.tc-blue   { box-shadow:0 8px 40px rgba(0,207,255,0.15); border-color:rgba(0,207,255,0.25); }
+    .tip-card:hover.tc-pink   { box-shadow:0 8px 40px rgba(255,45,120,0.15); border-color:rgba(255,45,120,0.25); }
+    .tip-card:hover.tc-purple { box-shadow:0 8px 40px rgba(168,85,247,0.15); border-color:rgba(168,85,247,0.25); }
+    .tip-card:hover.tc-orange { box-shadow:0 8px 40px rgba(255,106,0,0.15);  border-color:rgba(255,106,0,0.25); }
+    .tip-card:hover.tc-yellow { box-shadow:0 8px 40px rgba(255,230,0,0.15);  border-color:rgba(255,230,0,0.25); }
+
+    .tip-header { display:flex; align-items:flex-start; gap:12px; margin-bottom:12px; }
+    .tip-icon-wrap {
+      width:42px; height:42px; border-radius:12px; display:flex;
+      align-items:center; justify-content:center; font-size:20px; flex-shrink:0;
+    }
+    .tc-green  .tip-icon-wrap { background:rgba(0,255,136,0.12); }
+    .tc-blue   .tip-icon-wrap { background:rgba(0,207,255,0.12); }
+    .tc-pink   .tip-icon-wrap { background:rgba(255,45,120,0.12); }
+    .tc-purple .tip-icon-wrap { background:rgba(168,85,247,0.12); }
+    .tc-orange .tip-icon-wrap { background:rgba(255,106,0,0.12);  }
+    .tc-yellow .tip-icon-wrap { background:rgba(255,230,0,0.12);  }
+
+    .tip-title-wrap {}
+    .tip-priority {
+      font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+      margin-bottom:3px;
+    }
+    .tc-green  .tip-priority { color:var(--neon-green); }
+    .tc-blue   .tip-priority { color:var(--neon-blue); }
+    .tc-pink   .tip-priority { color:var(--neon-pink); }
+    .tc-purple .tip-priority { color:var(--neon-purple); }
+    .tc-orange .tip-priority { color:var(--neon-orange); }
+    .tc-yellow .tip-priority { color:var(--neon-yellow); }
+
+    .tip-title { font-size:14px; font-weight:700; color:#fff; line-height:1.2; }
+
+    .tip-body { font-size:12.5px; color:#a0aec0; line-height:1.65; margin-bottom:14px; }
+    .tip-body strong { color:#e2e8f0; }
+
+    .tip-action {
+      display:flex; align-items:center; gap:8px;
+      font-size:11px; font-weight:600;
+      padding:8px 14px; border-radius:10px;
+      border:none; cursor:default;
+    }
+    .tc-green  .tip-action { background:rgba(0,255,136,0.1); color:var(--neon-green); }
+    .tc-blue   .tip-action { background:rgba(0,207,255,0.1); color:var(--neon-blue); }
+    .tc-pink   .tip-action { background:rgba(255,45,120,0.1); color:var(--neon-pink); }
+    .tc-purple .tip-action { background:rgba(168,85,247,0.1); color:var(--neon-purple); }
+    .tc-orange .tip-action { background:rgba(255,106,0,0.1);  color:var(--neon-orange); }
+    .tc-yellow .tip-action { background:rgba(255,230,0,0.1);  color:var(--neon-yellow); }
+
+    /* Plan próxima carrera */
+    .next-run-card {
+      background:var(--card);
+      border:1px solid rgba(0,207,255,0.2);
+      border-radius:24px;
+      padding:28px;
+      margin-bottom:28px;
+      position:relative;
+      overflow:hidden;
+    }
+    .next-run-card::before {
+      content:'';
+      position:absolute; inset:0;
+      background:radial-gradient(ellipse at 100% 0%, rgba(0,207,255,0.06) 0%, transparent 60%);
+      pointer-events:none;
+    }
+    .next-run-header { display:flex; align-items:center; gap:14px; margin-bottom:24px; }
+    .next-run-header .nr-icon {
+      width:52px; height:52px; border-radius:16px;
+      background:linear-gradient(135deg,rgba(0,207,255,0.2),rgba(168,85,247,0.2));
+      border:1px solid rgba(0,207,255,0.3);
+      display:flex; align-items:center; justify-content:center; font-size:26px;
+    }
+    .next-run-header h3 { font-family:'Orbitron',sans-serif; font-size:16px; font-weight:700; color:#fff; }
+    .next-run-header p  { font-size:12px; color:var(--muted); margin-top:3px; }
+
+    .next-run-steps {
+      display:grid; grid-template-columns:repeat(3,1fr); gap:14px;
+    }
+    @media(max-width:700px){ .next-run-steps { grid-template-columns:1fr; } }
+
+    .nr-step {
+      background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);
+      border-radius:16px; padding:16px;
+    }
+    .nr-step .step-num {
+      font-family:'Orbitron',sans-serif; font-size:10px; font-weight:700;
+      color:var(--neon-blue); letter-spacing:2px; margin-bottom:8px;
+    }
+    .nr-step .step-title { font-size:13px; font-weight:700; color:#fff; margin-bottom:6px; }
+    .nr-step .step-desc  { font-size:12px; color:var(--muted); line-height:1.5; }
+    .nr-step .step-target {
+      margin-top:10px; font-size:11px; font-weight:700;
+      padding:5px 12px; border-radius:8px; display:inline-block;
+    }
+    .nr-step:nth-child(1) .step-target { background:rgba(0,255,136,0.1); color:var(--neon-green); }
+    .nr-step:nth-child(2) .step-target { background:rgba(0,207,255,0.1); color:var(--neon-blue); }
+    .nr-step:nth-child(3) .step-target { background:rgba(168,85,247,0.1); color:var(--neon-purple); }
+
+    /* ── FOOTER ── */
+    .footer {
+      text-align:center; padding:20px; color:var(--muted);
+      font-size:11px; border-top:1px solid var(--border);
+    }
+    .footer span { color:var(--neon-green); }
+
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(20px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .hero-card, .chart-card, .metric-card, .zones-card, .te-card,
+    .tip-card, .motive-banner, .perf-score-card, .next-run-card {
+      animation: fadeUp .5s ease both;
+    }
+    .hero-card:nth-child(1){ animation-delay:.05s }
+    .hero-card:nth-child(2){ animation-delay:.10s }
+    .hero-card:nth-child(3){ animation-delay:.15s }
+    .hero-card:nth-child(4){ animation-delay:.20s }
+    .hero-card:nth-child(5){ animation-delay:.25s }
+    .tip-card:nth-child(1){ animation-delay:.1s }
+    .tip-card:nth-child(2){ animation-delay:.15s }
+    .tip-card:nth-child(3){ animation-delay:.2s }
+    .tip-card:nth-child(4){ animation-delay:.25s }
+    .tip-card:nth-child(5){ animation-delay:.3s }
+    .tip-card:nth-child(6){ animation-delay:.35s }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-badge"><div class="dot-live"></div>RUN COMPLETE</div>
+    <h1>GONZALO BÉRTOLA</h1>
+    <p class="subtitle">Montevideo · <span>Hoy @ 7:14 pm</span> · Forerunner 265</p>
+  </div>
+
+  <!-- HERO STATS -->
+  <div class="hero-grid">
+    <div class="hero-card green">
+      <div class="hero-icon">🏃</div>
+      <div class="hero-value">1.83</div>
+      <div class="hero-label">km recorridos</div>
+    </div>
+    <div class="hero-card blue">
+      <div class="hero-icon">⏱️</div>
+      <div class="hero-value">9:32</div>
+      <div class="hero-label">Tiempo total</div>
+    </div>
+    <div class="hero-card pink">
+      <div class="hero-icon">⚡</div>
+      <div class="hero-value">5:12</div>
+      <div class="hero-label">/km ritmo</div>
+    </div>
+    <div class="hero-card purple">
+      <div class="hero-icon">❤️</div>
+      <div class="hero-value">149</div>
+      <div class="hero-label">FC media (ppm)</div>
+    </div>
+    <div class="hero-card orange">
+      <div class="hero-icon">🔥</div>
+      <div class="hero-value">132</div>
+      <div class="hero-label">Calorías</div>
+    </div>
+  </div>
+
+  <!-- TRAINING EFFECT -->
+  <div class="te-card">
+    <div class="te-badge">
+      <div class="te-type">TEMPO</div>
+      <div class="te-sub">Training Effect</div>
+    </div>
+    <div class="te-info">
+      <h3>Aeróbica alta 🚀</h3>
+      <p>Carga de ejercicio: <strong>38</strong> · Condición: <strong>Normal</strong> · Esfuerzo percibido: <strong>2/10 Leve</strong></p>
+    </div>
+    <div class="te-scores">
+      <div class="te-score">
+        <div class="ts-val aero">2.2</div>
+        <div class="ts-lbl">Aeróbico</div>
+      </div>
+      <div class="te-score">
+        <div class="ts-val anaero">0.0</div>
+        <div class="ts-lbl">Anaeróbico</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="section-title">📈 Gráficos por vuelta</div>
+  <div class="charts-grid">
+    <div class="chart-card">
+      <div class="chart-title"><div class="dot" style="background:var(--neon-pink)"></div>Frecuencia Cardiaca (ppm)</div>
+      <div class="chart-wrap"><canvas id="hrChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><div class="dot" style="background:var(--neon-blue)"></div>Potencia (W)</div>
+      <div class="chart-wrap"><canvas id="pwrChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><div class="dot" style="background:var(--neon-green)"></div>Cadencia (ppm)</div>
+      <div class="chart-wrap"><canvas id="cadChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title"><div class="dot" style="background:var(--neon-orange)"></div>Longitud de zancada (m)</div>
+      <div class="chart-wrap"><canvas id="strideChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- LAPS TABLE -->
+  <div class="section-title">🔁 Vueltas</div>
+  <div class="laps-wrap">
+    <div class="chart-card" style="padding:0;overflow:hidden;">
+      <table class="laps-table">
+        <thead>
+          <tr>
+            <th>Vuelta</th><th>Tiempo</th><th>Distancia</th><th>Ritmo</th>
+            <th>FC med</th><th>FC máx</th><th>Potencia</th><th>Cadencia</th><th>Zancada</th><th>Mejor ritmo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="lap-num">01</span></td>
+            <td>5:01.3</td><td>1.00 km</td>
+            <td><span class="lap-badge" style="background:rgba(0,255,136,0.15);color:var(--neon-green)">5:01 /km</span></td>
+            <td>148</td><td>154</td><td>343 W</td><td>172 ppm</td><td>1.15 m</td><td>4:23 /km</td>
+          </tr>
+          <tr>
+            <td><span class="lap-num">02</span></td>
+            <td>4:31.0</td><td>0.83 km</td>
+            <td><span class="lap-badge" style="background:rgba(0,207,255,0.15);color:var(--neon-blue)">5:26 /km</span></td>
+            <td>150</td><td>156</td><td>312 W</td><td>173 ppm</td><td>1.06 m</td><td>4:54 /km</td>
+          </tr>
+          <tr style="font-weight:600">
+            <td><span class="lap-num" style="color:var(--neon-orange)">∑</span></td>
+            <td>9:32.4</td><td>1.83 km</td>
+            <td><span class="lap-badge" style="background:rgba(255,106,0,0.15);color:var(--neon-orange)">5:12 /km</span></td>
+            <td>149</td><td>156</td><td>328 W</td><td>172 ppm</td><td>1.11 m</td><td>4:23 /km</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ZONES -->
+  <div class="section-title">💜 Zonas de esfuerzo</div>
+  <div class="zones-grid">
+    <div class="zones-card">
+      <div class="chart-title"><div class="dot" style="background:var(--neon-pink)"></div>Zonas FC</div>
+      <div class="zone-row"><div class="zone-label" style="color:#888">Z5 Máximo</div><div class="zone-bar-wrap"><div class="zone-bar" style="width:0%;background:#ff2d78"></div></div><div class="zone-pct" style="color:#888">0%</div></div>
+      <div class="zone-row"><div class="zone-label" style="color:#f97316">Z4 Umbral</div><div class="zone-bar-wrap"><div class="zone-bar" style="width:73%;background:linear-gradient(90deg,#f97316,#ff2d78)"></div></div><div class="zone-pct" style="color:#f97316">73%</div></div>
+      <div class="zone-row"><div class="zone-label" style="color:#eab308">Z3 Aeróbica</div><div class="zone-bar-wrap"><div class="zone-bar" style="width:23%;background:linear-gradient(90deg,#eab308,#f97316)"></div></div><div class="zone-pct" style="color:#eab308">23%</div></div>
+      <div class="zone-row"><div class="zone-label" style="color:#22c55e">Z2 Suave</div><div class="zone-bar-wrap"><div class="zone-bar" style="width:2%;background:#22c55e"></div></div><div class="zone-pct" style="color:#22c55e">2%</div></div>
+      <div class="zone-row"><div class="zone-label" style="color:var(--muted)">Z1 Calent.</div><div class="zone-bar-wrap"><div class="zone-bar" style="width:0%;background:#3b82f6"></div></div><div class="zone-pct" style="color:var(--muted)">0%</div></div>
+    </div>
+    <div class="zones-card">
+      <div class="chart-title"><div class="dot" style="background:var(--neon-blue)"></div>Zonas Potencia</div>
+      <div class="zone-row"><div class="zone-label" style="color:#888">Z5 >441W</div><div class="zone-bar-wrap"><div class="zone-bar" style="width:0%;background:#ff2d78"></div></div><div class="zone-pct" style="color:#888">0%</div></div>
+      <div class="zone-row"><div class="zone-label" style="color:#f97316">Z4 384-440W</div><div class="zone-bar-wrap"><div class="zone-bar" style="width:3%;background:#f97316"></div></div><div class="zone-pct" style="color:#f97316">3%</div></div>
+      <div class="zone-row"><div class="zone-label" style="color:#eab308">Z3 Tempo</div><div class="zone-bar-wrap"><div class="zone-bar" style="width:23%;background:linear-gradient(90deg,#a855f7,#eab308)"></div></div><div class="zone-pct" style="color:#eab308">23%</div></div>
+      <div class="zone-row"><div class="zone-label" style="color:var(--neon-blue)">Z2 Moderado</div><div class="zone-bar-wrap"><div class="zone-bar" style="width:52%;background:linear-gradient(90deg,#00cfff,#a855f7)"></div></div><div class="zone-pct" style="color:var(--neon-blue)">52%</div></div>
+      <div class="zone-row"><div class="zone-label" style="color:var(--neon-green)">Z1 Fácil</div><div class="zone-bar-wrap"><div class="zone-bar" style="width:21%;background:var(--neon-green)"></div></div><div class="zone-pct" style="color:var(--neon-green)">21%</div></div>
+    </div>
+  </div>
+
+  <!-- METRICS -->
+  <div class="section-title">📊 Estadísticas detalladas</div>
+  <div class="metrics-grid">
+    <div class="metric-card"><div class="m-icon">🏃</div><div class="m-value">9:32</div><div class="m-label">Tiempo carrera</div></div>
+    <div class="metric-card"><div class="m-icon">⚡</div><div class="m-value">4:23</div><div class="m-label">Ritmo óptimo</div></div>
+    <div class="metric-card"><div class="m-icon">💨</div><div class="m-value">11.5</div><div class="m-label">Vel. media km/h</div></div>
+    <div class="metric-card"><div class="m-icon">🚀</div><div class="m-value">13.7</div><div class="m-label">Vel. máx km/h</div></div>
+    <div class="metric-card"><div class="m-icon">⬆️</div><div class="m-value">1 m</div><div class="m-label">Ascenso total</div></div>
+    <div class="metric-card"><div class="m-icon">📐</div><div class="m-value">27–30m</div><div class="m-label">Rango altitud</div></div>
+    <div class="metric-card"><div class="m-icon">⚙️</div><div class="m-value">328 W</div><div class="m-label">Potencia media</div></div>
+    <div class="metric-card"><div class="m-icon">🔝</div><div class="m-value">420 W</div><div class="m-label">Potencia máx</div></div>
+    <div class="metric-card"><div class="m-icon">👟</div><div class="m-value">172</div><div class="m-label">Cadencia media</div></div>
+    <div class="metric-card"><div class="m-icon">📏</div><div class="m-value">1.11 m</div><div class="m-label">Zancada media</div></div>
+    <div class="metric-card"><div class="m-icon">🕒</div><div class="m-value">255 ms</div><div class="m-label">Contacto suelo</div></div>
+    <div class="metric-card"><div class="m-icon">📊</div><div class="m-value">8.1%</div><div class="m-label">Ratio vertical</div></div>
+    <div class="metric-card"><div class="m-icon">💧</div><div class="m-value">154 ml</div><div class="m-label">Pérd. líquido</div></div>
+    <div class="metric-card"><div class="m-icon">🔋</div><div class="m-value">-2</div><div class="m-label">Body Battery</div></div>
+    <div class="metric-card"><div class="m-icon">🔥</div><div class="m-value">119</div><div class="m-label">Cal. activas</div></div>
+    <div class="metric-card"><div class="m-icon">😴</div><div class="m-value">13</div><div class="m-label">Cal. reposo</div></div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       COACHING & ANÁLISIS
+  ══════════════════════════════════════ -->
+
+  <!-- MENSAJE MOTIVACIONAL -->
+  <div class="section-title">💬 Coaching & Análisis</div>
+
+  <div class="motive-banner">
+    <div class="motive-inner">
+      <div class="motive-emoji">🏆</div>
+      <div class="motive-text">
+        <div class="motive-tag">⚡ Mensaje del coach</div>
+        <h2>¡Saliste, te moviste y eso ya es una victoria!</h2>
+        <p>
+          Gonzalo, cada kilómetro que ponés en las piernas es una inversión en tu mejor versión.
+          Esta fue una carrera corta, sí — pero los números dicen algo muy valioso: tenés
+          <strong>una base sólida de potencia (328W), una cadencia excelente (172 ppm)</strong>
+          y tu cuerpo responde bien al esfuerzo. Ahora es momento de darle dirección a ese motor.
+          <strong>El único rival que tenés que superar es el Gonzalo de ayer.</strong> Y hoy ya lo hiciste. 💪
+        </p>
+        <div class="motive-stars">
+          <span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span><span>⭐</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCORE RÁPIDO -->
+  <div class="perf-score-wrap">
+    <div class="perf-score-card">
+      <div class="score-ring">
+        <svg width="60" height="60" viewBox="0 0 60 60">
+          <circle cx="30" cy="30" r="24" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="5"/>
+          <circle cx="30" cy="30" r="24" fill="none" stroke="#00ff88" stroke-width="5"
+            stroke-dasharray="150.8" stroke-dashoffset="30" stroke-linecap="round"/>
+        </svg>
+        <div class="score-ring-num" style="color:#00ff88">80</div>
+      </div>
+      <div class="score-info">
+        <div class="score-label">Cadencia</div>
+        <div class="score-desc">172 ppm — muy cerca del ideal. Foco en llegar a 175-180.</div>
+      </div>
+    </div>
+    <div class="perf-score-card">
+      <div class="score-ring">
+        <svg width="60" height="60" viewBox="0 0 60 60">
+          <circle cx="30" cy="30" r="24" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="5"/>
+          <circle cx="30" cy="30" r="24" fill="none" stroke="#ff2d78" stroke-width="5"
+            stroke-dasharray="150.8" stroke-dashoffset="68" stroke-linecap="round"/>
+        </svg>
+        <div class="score-ring-num" style="color:#ff2d78">55</div>
+      </div>
+      <div class="score-info">
+        <div class="score-label">Zancada</div>
+        <div class="score-desc">Bajó de 1.15 a 1.06m en vuelta 2. Fatiga al final.</div>
+      </div>
+    </div>
+    <div class="perf-score-card">
+      <div class="score-ring">
+        <svg width="60" height="60" viewBox="0 0 60 60">
+          <circle cx="30" cy="30" r="24" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="5"/>
+          <circle cx="30" cy="30" r="24" fill="none" stroke="#00cfff" stroke-width="5"
+            stroke-dasharray="150.8" stroke-dashoffset="45" stroke-linecap="round"/>
+        </svg>
+        <div class="score-ring-num" style="color:#00cfff">70</div>
+      </div>
+      <div class="score-info">
+        <div class="score-label">Consistencia</div>
+        <div class="score-desc">Ritmo estable pero la potencia cayó 31W entre vueltas.</div>
+      </div>
+    </div>
+    <div class="perf-score-card">
+      <div class="score-ring">
+        <svg width="60" height="60" viewBox="0 0 60 60">
+          <circle cx="30" cy="30" r="24" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="5"/>
+          <circle cx="30" cy="30" r="24" fill="none" stroke="#a855f7" stroke-width="5"
+            stroke-dasharray="150.8" stroke-dashoffset="15" stroke-linecap="round"/>
+        </svg>
+        <div class="score-ring-num" style="color:#a855f7">90</div>
+      </div>
+      <div class="score-info">
+        <div class="score-label">Potencia base</div>
+        <div class="score-desc">328W media. Muy buena base para seguir construyendo.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TIPS CARDS -->
+  <div class="tips-grid">
+
+    <div class="tip-card tc-pink">
+      <div class="tip-header">
+        <div class="tip-icon-wrap">🫀</div>
+        <div class="tip-title-wrap">
+          <div class="tip-priority">🔴 Alta prioridad</div>
+          <div class="tip-title">FC demasiado alta para distancia corta</div>
+        </div>
+      </div>
+      <div class="tip-body">
+        Promediaste <strong>149 ppm</strong> en solo 1.83 km — y el <strong>73% del tiempo en Zona 4 (Umbral)</strong>.
+        Para una carrera tan corta, esto indica que saliste a un esfuerzo muy elevado sin calentamiento previo.
+        A largo plazo, correr siempre cerca del umbral sin variar intensidades <strong>frenará tus adaptaciones aeróbicas</strong>.
+        Tu base cardiovascular necesita más trabajo en zona 2.
+      </div>
+      <div class="tip-action">🎯 Meta: 70% de tus km en Zona 2 (110–128 ppm)</div>
+    </div>
+
+    <div class="tip-card tc-blue">
+      <div class="tip-header">
+        <div class="tip-icon-wrap">📉</div>
+        <div class="tip-title-wrap">
+          <div class="tip-priority">🔵 Técnica</div>
+          <div class="tip-title">Caída de potencia entre vueltas: –31W</div>
+        </div>
+      </div>
+      <div class="tip-body">
+        Vuelta 1: <strong>343W</strong> → Vuelta 2: <strong>312W</strong>. Una caída del 9% en menos de 10 minutos
+        es una señal de que la resistencia muscular específica está limitando tu rendimiento.
+        Esto también se refleja en la caída de zancada (<strong>1.15 → 1.06m</strong>).
+        Necesitás trabajar la fuerza funcional para mantener la potencia en el tiempo.
+      </div>
+      <div class="tip-action">💪 Agregá ejercicios de fuerza 2x semana (sentadillas, estocadas, peso muerto)</div>
+    </div>
+
+    <div class="tip-card tc-green">
+      <div class="tip-header">
+        <div class="tip-icon-wrap">👟</div>
+        <div class="tip-title-wrap">
+          <div class="tip-priority">🟢 Fortaleza a potenciar</div>
+          <div class="tip-title">Cadencia sólida, casi en el rango óptimo</div>
+        </div>
+      </div>
+      <div class="tip-body">
+        Tu cadencia de <strong>172 ppm</strong> está muy cerca del rango ideal de <strong>175–180 ppm</strong>
+        que recomiendan la mayoría de los expertos para reducir el impacto en articulaciones y mejorar eficiencia.
+        Sos un runner técnicamente eficiente en este aspecto. Con pequeños ajustes podés aprovechar aún más esa energía.
+      </div>
+      <div class="tip-action">✅ Intentá llegar a 175 ppm en tu próxima salida con música a ese BPM</div>
+    </div>
+
+    <div class="tip-card tc-orange">
+      <div class="tip-header">
+        <div class="tip-icon-wrap">⏰</div>
+        <div class="tip-title-wrap">
+          <div class="tip-priority">🟠 Volumen</div>
+          <div class="tip-title">1.83 km es muy poco para generar adaptación real</div>
+        </div>
+      </div>
+      <div class="tip-body">
+        Los beneficios del running — cardiovasculares, metabólicos, musculares — se activan a partir de
+        <strong>30–40 minutos continuos</strong> en zona aeróbica. Con 9 minutos y 1.83 km,
+        el estímulo es insuficiente para mejorar. Esto no es una crítica: ¡es lo mejor que podés escuchar!
+        Significa que con <strong>solo 20 minutos más por salida ya tendrás mejoras notables</strong>.
+      </div>
+      <div class="tip-action">📈 Objetivo próxima semana: al menos 3 km o 20 minutos continuos</div>
+    </div>
+
+    <div class="tip-card tc-purple">
+      <div class="tip-header">
+        <div class="tip-icon-wrap">🦵</div>
+        <div class="tip-title-wrap">
+          <div class="tip-priority">🟣 Biomecánica</div>
+          <div class="tip-title">Ratio vertical 8.1% — margen de mejora de economía</div>
+        </div>
+      </div>
+      <div class="tip-body">
+        Un <strong>ratio vertical de 8.1%</strong> indica que estás "rebotando" un poco más de lo ideal
+        (el rango óptimo es <strong>6.0–8.0%</strong>). Esa energía vertical no te hace avanzar más rápido —
+        es energía desperdiciada. Bajarlo mejora directamente tu economía de carrera.
+        El tiempo de contacto (<strong>255 ms</strong>) también tiene margen de mejora hacia los 240ms.
+      </div>
+      <div class="tip-action">🏋️ Trabajá drills: skipping, talones a glúteos, corridas con inclinación leve</div>
+    </div>
+
+    <div class="tip-card tc-yellow">
+      <div class="tip-header">
+        <div class="tip-icon-wrap">🌙</div>
+        <div class="tip-title-wrap">
+          <div class="tip-priority">🟡 Recuperación</div>
+          <div class="tip-title">Body Battery –2: entrená la recuperación</div>
+        </div>
+      </div>
+      <div class="tip-body">
+        Tu Body Battery bajó solo <strong>2 puntos</strong>, lo que confirma que el esfuerzo fue leve.
+        Pero el dato más importante es qué tan cargado llegaste <em>antes</em> de salir a correr.
+        La calidad del sueño, la hidratación y el descanso activo son <strong>tan importantes como el entrenamiento</strong>.
+        Invertir en recuperación = correr mejor en la próxima salida, sin negociación.
+      </div>
+      <div class="tip-action">😴 Objetivo: 7–9 hs de sueño + caminata suave el día post-carrera</div>
+    </div>
+
+  </div>
+
+  <!-- PLAN PRÓXIMA CARRERA -->
+  <div class="next-run-card">
+    <div class="next-run-header">
+      <div class="nr-icon">🗺️</div>
+      <div>
+        <h3>PLAN PARA TU PRÓXIMA SALIDA</h3>
+        <p>Basado en el análisis de esta carrera · Recomendación personalizada</p>
+      </div>
+    </div>
+    <div class="next-run-steps">
+      <div class="nr-step">
+        <div class="step-num">FASE 01 · CALENTAMIENTO</div>
+        <div class="step-title">🚶 5 min caminata + activación</div>
+        <div class="step-desc">
+          Tu FC arrancó alta de entrada. Dedicá 5 minutos a caminata rápida + movimientos dinámicos
+          (rotaciones de cadera, talones, skipping suave). Tu cuerpo va a agradecer el arranque progresivo.
+        </div>
+        <span class="step-target">🎯 FC &lt; 110 ppm antes de correr</span>
+      </div>
+      <div class="nr-step">
+        <div class="step-num">FASE 02 · CARRERA</div>
+        <div class="step-title">🏃 20–25 min en Zona 2</div>
+        <div class="step-desc">
+          Corrés más rápido que lo que tu aeróbica base necesita. La próxima salida, mantené la
+          FC entre <strong>110–128 ppm</strong> — probablemente te parezca "muy lento", pero es donde
+          el motor aeróbico se construye. Resistí la tentación de acelerar.
+        </div>
+        <span class="step-target">🎯 Ritmo aprox. 6:30–7:00 /km</span>
+      </div>
+      <div class="nr-step">
+        <div class="step-num">FASE 03 · VUELTA A LA CALMA</div>
+        <div class="step-title">🧘 5 min caminata + elongación</div>
+        <div class="step-desc">
+          Terminá la carrera con caminata suave y 8–10 minutos de stretching (cuádriceps, isquios,
+          pantorrillas, cadera). Esto reduce el cortisol, mejora la recuperación y <strong>protege tus rodillas</strong>
+          a largo plazo.
+        </div>
+        <span class="step-target">🎯 FC de vuelta a &lt;100 ppm antes de parar</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    Dashboard generado para <span>Gonzalo Bértola</span> · Garmin Forerunner 265 · SW 27.09
+  </div>
+
+</div>
+
+<script>
+  const chartDefaults = {
+    responsive: true, maintainAspectRatio: false,
+    animation: { duration: 1200, easing: 'easeInOutQuart' },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#0f0f1e', borderColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 1, titleColor: '#fff', bodyColor: '#7c8db0',
+        padding: 10, cornerRadius: 10,
+      }
+    },
+    scales: {
+      x: { display: false },
+      y: {
+        grid: { color: 'rgba(255,255,255,0.04)' },
+        ticks: { color: '#7c8db0', font: { size: 10 } },
+        border: { display: false }
+      }
+    }
+  };
+
+  function makeGradient(ctx, c1, c2) {
+    const g = ctx.createLinearGradient(0, 0, 0, 160);
+    g.addColorStop(0, c1); g.addColorStop(1, c2); return g;
+  }
+
+  const hrCtx = document.getElementById('hrChart').getContext('2d');
+  new Chart(hrCtx, { type: 'line', data: { labels: Array.from({length:10},(_,i)=>i+1), datasets: [{
+    data: [148,149,150,151,150,152,153,154,155,156],
+    borderColor: '#ff2d78', backgroundColor: makeGradient(hrCtx,'rgba(255,45,120,0.3)','rgba(255,45,120,0)'),
+    borderWidth: 2.5, fill: true, tension: 0.4, pointRadius: 3,
+    pointBackgroundColor: '#ff2d78', pointBorderColor: '#090913', pointBorderWidth: 2,
+  }]}, options: { ...chartDefaults, scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, min: 145, max: 160 }}}});
+
+  const pwrCtx = document.getElementById('pwrChart').getContext('2d');
+  new Chart(pwrCtx, { type: 'bar', data: { labels: Array.from({length:10},(_,i)=>i+1), datasets: [{
+    data: [343,340,335,354,345,312,320,318,330,328],
+    backgroundColor: makeGradient(pwrCtx,'rgba(0,207,255,0.8)','rgba(168,85,247,0.3)'),
+    borderColor: '#00cfff', borderWidth: 1, borderRadius: 6,
+  }]}, options: { ...chartDefaults, scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, min: 290, max: 370 }}}});
+
+  const cadCtx = document.getElementById('cadChart').getContext('2d');
+  new Chart(cadCtx, { type: 'line', data: { labels: Array.from({length:10},(_,i)=>i+1), datasets: [{
+    data: [172,171,173,174,172,175,173,172,174,172],
+    borderColor: '#00ff88', backgroundColor: makeGradient(cadCtx,'rgba(0,255,136,0.25)','rgba(0,255,136,0)'),
+    borderWidth: 2.5, fill: true, tension: 0.4, pointRadius: 3,
+    pointBackgroundColor: '#00ff88', pointBorderColor: '#090913', pointBorderWidth: 2,
+  }]}, options: { ...chartDefaults, scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, min: 168, max: 178 }}}});
+
+  const strideCtx = document.getElementById('strideChart').getContext('2d');
+  new Chart(strideCtx, { type: 'line', data: { labels: Array.from({length:10},(_,i)=>i+1), datasets: [{
+    data: [1.15,1.14,1.12,1.17,1.15,1.06,1.08,1.10,1.11,1.11],
+    borderColor: '#ff6a00', backgroundColor: makeGradient(strideCtx,'rgba(255,106,0,0.25)','rgba(255,106,0,0)'),
+    borderWidth: 2.5, fill: true, tension: 0.4, pointRadius: 3,
+    pointBackgroundColor: '#ff6a00', pointBorderColor: '#090913', pointBorderWidth: 2,
+  }]}, options: { ...chartDefaults, scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, min: 1.0, max: 1.25 }}}});
+</script>
+</body>
+</html>
